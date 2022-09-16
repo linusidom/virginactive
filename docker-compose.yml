@@ -1,0 +1,46 @@
+version: '3.9'
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.dev
+    restart: always
+    ports:
+      - 80:80
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    volumes:
+      - /app/node_modules
+      - ./client:/app
+    depends_on:
+      - backend
+    environment:
+      - WDS_SOCKET_PORT=0
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      - pgHost=postgres
+      - pgPassword=password
+      - pgUser=postgres
+      - pgPort=5432
+      - pgDatabase=my_posts
+    volumes:
+      - /app/node_modules
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=my_posts
+      - POSTGRES_PASSWORD=password
+    healthcheck:
+      test: pg_isready -U postgres
